@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>月命 · 潜意识解析</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;500;700&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background-color: #030206;
+            background-image: radial-gradient(circle at center, #08040e 0%, #030206 100%);
+            color: #b8b2c4; 
+            font-family: 'Noto Serif SC', serif;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+            letter-spacing: 0.05em;
+        }
+
+        #spaceCanvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .layout {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+        }
+
+        .left-panel {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            perspective: 1200px;
+        }
+
+        @media (max-width: 850px) {
+            .layout { flex-direction: column; }
+            .left-panel { flex: 2; z-index: 10; padding-top: 5vh; }
+            .right-panel { 
+                position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+                z-index: 1; opacity: 0.35; pointer-events: none;
+            }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 1s ease, transform 1s ease;
+            transform: translateY(20px);
+        }
+        .container.show { opacity: 1; transform: translateY(0); }
+
+        h1 { font-size: 3rem; font-weight: 300; letter-spacing: 1rem; margin-bottom: 1rem; color: #fff; text-shadow: 0 0 20px rgba(160, 120, 200, 0.6); }
+        .subtitle { font-size: 0.85rem; color: #8a7f9c; margin-bottom: 3.5rem; letter-spacing: 0.4rem; }
+        
+        .btn {
+            background: rgba(20, 15, 30, 0.6); border: 1px solid rgba(160, 120, 200, 0.4);
+            color: #d0c8e0; padding: 1rem 3rem; font-size: 0.95rem; font-family: inherit;
+            letter-spacing: 0.3rem; cursor: pointer; transition: all 0.4s ease;
+            backdrop-filter: blur(4px);
+        }
+        .btn:hover { border-color: #fff; color: #fff; box-shadow: 0 0 20px rgba(160, 120, 200, 0.4); background: rgba(40, 25, 60, 0.8); }
+
+        .question-box { display: none; flex-direction: column; gap: 1.5rem; text-align: left; }
+        .question-text { font-size: 1.15rem; line-height: 1.9; margin-bottom: 1rem; min-height: 80px; color: #fff; text-shadow: 0 2px 5px rgba(0,0,0,0.8); }
+        .option {
+            background: rgba(30, 20, 45, 0.7); border: 1px solid rgba(255,255,255,0.08);
+            padding: 1.2rem 1.5rem; cursor: pointer; transition: all 0.3s ease;
+            font-size: 0.95rem; line-height: 1.6; border-radius: 4px; color: #ccc;
+            backdrop-filter: blur(8px);
+        }
+        .option:hover { background: rgba(60, 40, 90, 0.9); border-color: rgba(160, 120, 200, 0.8); color: #fff; transform: translateX(5px); }
+
+        .result-box { display: none; flex-direction: column; align-items: center; }
+        .result-title { font-size: 1.8rem; color: #fff; margin-bottom: 1rem; letter-spacing: 0.3rem; text-shadow: 0 0 15px rgba(255,255,255,0.4); }
+        .result-text {
+            font-size: 0.9rem; line-height: 2; color: #c0b8d0; text-align: justify;
+            background: rgba(10, 5, 20, 0.6); padding: 1.5rem; border-radius: 4px;
+            border-left: 2px solid rgba(160, 120, 200, 0.6); min-height: 240px;
+            backdrop-filter: blur(10px);
+        }
+
+        .loading-box { display: none; flex-direction: column; align-items: center; gap: 1.5rem; }
+        .loading-text { font-size: 0.9rem; letter-spacing: 0.2rem; color: #8a7f9c; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+        .music-toggle {
+            position: absolute; top: 20px; right: 20px;
+            width: 40px; height: 40px;
+            border: 1px solid rgba(160, 120, 200, 0.3); border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; z-index: 20; background: rgba(20, 15, 30, 0.6);
+        }
+        .music-toggle svg { width: 18px; height: 18px; fill: #b8b2c4; }
+        .music-toggle.playing svg { fill: #fff; }
+        .music-toggle .slash { display: none; stroke: #b8b2c4; stroke-width: 2; }
+        .music-toggle.paused .slash { display: block; }
+
+        .astrolabe-container {
+            width: 600px; height: 600px;
+            position: relative;
+            display: flex; justify-content: center; align-items: center;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+        }
+
+        #three-canvas {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px; height: 300px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .pedestal {
+            position: absolute;
+            bottom: 20px; left: 50%;
+            transform: translateX(-50%) rotateX(75deg);
+            width: 380px; height: 380px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(30, 15, 50, 0.8) 0%, rgba(5, 2, 10, 0.9) 60%, transparent 80%);
+            box-shadow: inset 0 0 40px rgba(0,0,0,1), 0 20px 50px rgba(0,0,0,0.9);
+            border: 1px solid rgba(160, 120, 200, 0.15);
+            z-index: 1;
+        }
+
+        .sphere-wrapper {
+            width: 100%; height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: floatInstrument 10s ease-in-out infinite alternate;
+            z-index: 2;
+        }
+
+        .ring {
+            position: absolute; top: 50%; left: 50%;
+            border-radius: 50%;
+            transform-style: preserve-3d;
+            z-index: 5;
+        }
+
+        .ring-outer {
+            width: 420px; height: 420px;
+            margin: -210px 0 0 -210px;
+            border: 2px solid rgba(180, 150, 100, 0.3);
+            box-shadow: 0 0 25px rgba(180, 150, 100, 0.15), inset 0 0 20px rgba(180, 150, 100, 0.1);
+            animation: spinZ 50s linear infinite;
+        }
+        .ring-outer::before {
+            content: ''; position: absolute; inset: -5px; border-radius: 50%;
+            background: repeating-conic-gradient(
+                from 0deg,
+                transparent 0deg, transparent 1.5deg,
+                rgba(200, 180, 150, 0.7) 1.5deg, rgba(200, 180, 150, 0.7) 2.5deg
+            );
+            -webkit-mask: radial-gradient(transparent 70%, #000 71%, #000 72%, transparent 73%);
+        }
+        .ring-outer::after {
+            content: ''; position: absolute; inset: 15px; border-radius: 50%;
+            border: 1px solid rgba(220, 190, 120, 0.2);
+        }
+
+        .ring-mid {
+            width: 360px; height: 360px;
+            margin: -180px 0 0 -180px;
+            border: 1px solid rgba(160, 120, 200, 0.5);
+            transform: rotateX(65deg) rotateY(30deg);
+            animation: spinZReverse 30s linear infinite;
+            box-shadow: 0 0 20px rgba(160, 120, 200, 0.3);
+        }
+
+        .ring-inner {
+            width: 280px; height: 280px;
+            margin: -140px 0 0 -140px;
+            border: 1px solid rgba(180, 200, 230, 0.4);
+            transform: rotateX(80deg) rotateY(-40deg);
+            animation: spinZ 20s linear infinite;
+            box-shadow: inset 0 0 15px rgba(180, 200, 230, 0.2);
+        }
+        .ring-inner::before {
+            content: ''; position: absolute; inset: 8px; border-radius: 50%;
+            border: 1px dashed rgba(180, 200, 230, 0.3);
+        }
+
+        .ring-equator {
+            width: 390px; height: 390px;
+            margin: -195px 0 0 -195px;
+            transform: rotateX(85deg);
+            border: 1px solid rgba(255,255,255,0.1);
+            animation: spinZ 60s linear infinite;
+        }
+
+        .pointer {
+            position: absolute; top: 50%; left: 50%;
+            width: 200px; height: 1px;
+            margin-top: -0.5px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7));
+            transform-origin: 0 50%;
+            animation: sweepPointer 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            z-index: 12;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        .pointer::after {
+            content: ''; position: absolute; right: 0; top: -3px;
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #fff; box-shadow: 0 0 15px #fff;
+        }
+
+        .dust {
+            position: absolute; border-radius: 50%; background: #fff;
+            box-shadow: 0 0 10px 2px rgba(160,120,200,0.8);
+            animation: floatDust 6s ease-in-out infinite alternate;
+        }
+        .d1 { top: 15%; left: 25%; width: 4px; height: 4px; }
+        .d2 { top: 75%; left: 85%; width: 2px; height: 2px; animation-delay: 2s;}
+        .d3 { top: 85%; left: 15%; width: 3px; height: 3px; animation-delay: 4s;}
+
+        @keyframes floatInstrument { 
+            0%, 100% { transform: translateY(0) rotateX(10deg); } 
+            50% { transform: translateY(-15px) rotateX(15deg); } 
+        }
+        @keyframes spinZ { 100% { transform: rotateZ(360deg); } }
+        @keyframes spinZReverse { 100% { transform: rotateZ(-360deg); } }
+        @keyframes sweepPointer { 0% { transform: rotateZ(0deg); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: rotateZ(360deg); opacity: 0; } }
+        @keyframes floatDust {
+            0% { transform: translateY(0) scale(1); opacity: 0.2; }
+            100% { transform: translateY(-20px) scale(1.5); opacity: 0.8; }
+        }
+
+    </style>
+</head>
+<body>
+    <canvas id="spaceCanvas"></canvas>
+
+    <div class="music-toggle paused" id="musicBtn" onclick="toggleMusic()">
+        <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/><line class="slash" x1="3" y1="21" x2="21" y2="3" /></svg>
+    </div>
+
+    <!-- 替换为稳定免版权音乐 CDN -->
+    <audio id="bgm" loop>
+        <source src="https://cdn.pixabay.com/download/audio/2022/10/25/audio_946bcb6737.mp3?filename=ambient-piano-amp-strings-10711.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="layout">
+        <div class="left-panel">
+            <div class="container show" id="homeScreen">
+                <h1>月 命</h1>
+                <p class="subtitle">凝视深渊，窥探潜意识</p>
+                <button class="btn" onclick="startTest()">抽 取 命 轨</button>
+            </div>
+
+            <div class="container" id="questionScreen">
+                <div class="question-box" id="qBox">
+                    <p class="question-text" id="questionText"></p>
+                    <div class="option" id="optionA" onclick="selectOption('A')"></div>
+                    <div class="option" id="optionB" onclick="selectOption('B')"></div>
+                </div>
+            </div>
+
+            <div class="container" id="loadingScreen">
+                <div class="loading-box" id="lBox" style="display:flex;">
+                    <p class="loading-text" id="loadingText">正在解析命轨碎片...</p>
+                </div>
+            </div>
+
+            <div class="container" id="resultScreen">
+                <div class="result-box" id="rBox">
+                    <h2 class="result-title" id="resultTitle"></h2>
+                    <div class="result-text" id="resultText"></div>
+                    <button class="btn" onclick="location.reload()" style="margin-top: 2rem;">重返迷雾</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="astrolabe-container" id="astrolabe">
+                <div class="pedestal"></div>
+                
+                <div class="sphere-wrapper">
+                    <div class="dust d1"></div>
+                    <div class="dust d2"></div>
+                    <div class="dust d3"></div>
+
+                    <div class="ring ring-outer"></div>
+                    <div class="ring ring-mid"></div>
+                    <div class="ring ring-inner"></div>
+                    <div class="ring ring-equator"></div>
+                    
+                    <div id="three-canvas"></div>
+                    
+                    <div class="pointer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        const questionBank = [
+            { text: "深夜你躺在床上，大脑却不肯安静。那些反复浮现的念头，最接近哪一种？", A: { text: "“我是不是又做错了什么。”", trait: "burnout" }, B: { text: "“明天还有那么多事，我应付得来吗。”", trait: "burnout" } },
+            { text: "如果可以把一种感受从身体里抽出来装进瓶子，你最想抽走的是？", A: { text: "那种“快要被压垮”的沉重感", trait: "burnout" }, B: { text: "那种“没有人在意”的空洞感", trait: "isolation" } },
+            { text: "计划已经列好很久了，但你一直没有开始。真正的原因是？", A: { text: "你害怕开始之后发现自己做不好", trait: "burnout" }, B: { text: "你在等一个“状态对了”的瞬间，但它一直没来", trait: "action" } },
+            { text: "你发现自己一直在绕同一个圈。你的反应是？", A: { text: "停下来，第一次认真看这个圈的形状", trait: "action" }, B: { text: "继续走，因为停下意味着承认自己迷路了", trait: "burnout" } },
+            { text: "你正在经历一种无形的疲惫，你觉得它最像什么？", A: { text: "像陷在泥沼里，越挣扎陷得越深", trait: "burnout" }, B: { text: "像戴着面具，连呼吸都觉得费力", trait: "isolation" } },
+            { text: "当周围突然安静下来时，你通常会感到？", A: { text: "一种无处遁形的焦虑和空虚", trait: "burnout" }, B: { text: "终于松了一口气，希望别被打扰", trait: "isolation" } },
+            { text: "面对突如其来的夸奖，你的第一反应是？", A: { text: "恐慌，觉得对方只是没看到我糟糕的一面", trait: "burnout" }, B: { text: "戒备，猜测对方是不是有什么目的", trait: "isolation" } },
+            { text: "如果有一面能照出你内心的镜子，你害怕看到什么？", A: { text: "一个已经千疮百孔、脆弱不堪的灵魂", trait: "burnout" }, B: { text: "一片深不见底的漆黑，什么都没有", trait: "isolation" } },
+            { text: "你对自己最严厉的惩罚通常是什么？", A: { text: "不断回想过去的错误，反复折磨自己", trait: "burnout" }, B: { text: "剥夺自己获得快乐和休息的权利", trait: "burnout" } },
+            { text: "最近一次感到“真正放松”是什么时候？", A: { text: "很久以前了，几乎想不起来", trait: "burnout" }, B: { text: "只有在彻底累倒、断片的那一刻", trait: "burnout" } },
+            { text: "你觉得自己的情绪像个什么？", A: { text: "一个随时会引爆的定时炸弹", trait: "burnout" }, B: { text: "一片死寂的、不再泛起波澜的死水", trait: "isolation" } },
+            { text: "如果可以，你最想对现在的自己说一句什么？", A: { text: "“别再硬撑了，你真的很累了。”", trait: "burnout" }, B: { text: "“你到底想要什么？我都快不认识你了。”", trait: "desire" } },
+            { text: "有人试图走近你，你的下意识动作是？", A: { text: "后退半步，先观察对方的目的", trait: "isolation" }, B: { text: "伸出手，但心里清楚自己随时会收回", trait: "isolation" } },
+            { text: "你最常对自己说的一句话，更接近哪一种？", A: { text: "“算了，说了也没人懂。”", trait: "isolation" }, B: { text: "“再撑一下，也许明天会不一样。”", trait: "burnout" } },
+            { text: "深夜你收到一条来自陌生号码的消息，只有一句话：“我知道你在想什么。”你会？", A: { text: "立刻回复：“你是谁。”", trait: "action" }, B: { text: "盯着屏幕，等对方先说更多", trait: "isolation" } },
+            { text: "你被要求在一张白纸上画出“此刻的自己”。你的笔会先落在？", A: { text: "纸的边缘，画一个很小的人", trait: "isolation" }, B: { text: "纸的中央，用力画下一道很深的线", trait: "desire" } },
+            { text: "如果“月命”给你一个短暂的超能力，你选？", A: { text: "让某个人在下一秒想起你", trait: "desire" }, B: { text: "让自己在下一秒彻底消失，不被任何人察觉", trait: "isolation" } },
+            { text: "你在一片雾中行走，前方出现两个影子。你更想走向？", A: { text: "那个站在原地、沉默不动的影子", trait: "isolation" }, B: { text: "那个正在朝你伸出手的影子", trait: "desire" } },
+            { text: "在一场喧闹的聚会中，你通常是那个？", A: { text: "在角落里冷眼旁观的人", trait: "isolation" }, B: { text: "强颜欢笑，试图融入却觉得格格不入的人", trait: "burnout" } },
+            { text: "别人对你的评价，最常见的是哪一类？", A: { text: "“你好像总是有心事，很难靠近。”", trait: "isolation" }, B: { text: "“你总是那么懂事，好像什么都不需要。”", trait: "burnout" } },
+            { text: "如果建立亲密关系意味着要展露软弱，你会？", A: { text: "宁愿孤独，也不想冒被伤害的风险", trait: "isolation" }, B: { text: "极度渴望，但又害怕对方接不住真实的自己", trait: "desire" } },
+            { text: "你在一片荒原上发现了一座电话亭，你会打给谁？", A: { text: "打给未来的自己，问问他过得好不好", trait: "action" }, B: { text: "只拿起来听一听里面的忙音", trait: "isolation" } },
+            { text: "当你感到极度委屈时，你会怎么做？", A: { text: "把自己关起来，默默消化所有情绪", trait: "isolation" }, B: { text: "虽然很想哭，但发现连眼泪都流不出来", trait: "burnout" } },
+            { text: "你觉得“灵魂伴侣”存在吗？", A: { text: "存在，但我可能永远遇不到", trait: "desire" }, B: { text: "不存在，人终究是一座座孤岛", trait: "isolation" } },
+            { text: "你最害怕失去什么？", A: { text: "好不容易建立起来的自我防御机制", trait: "isolation" }, B: { text: "对这世界最后的一点点热情和期待", trait: "burnout" } },
+            { text: "一扇门后传来你从未听过的声音，你明知道不该打开，但你的手？", A: { text: "已经放在门把上了，你想知道后面是什么", trait: "desire" }, B: { text: "停在半空，你在和那股冲动角力", trait: "burnout" } },
+            { text: "你心里有一团火，但它烧的不是温暖，而是？", A: { text: "想把眼前的一切推倒重来的破坏欲", trait: "desire" }, B: { text: "想被某个人看见、被某个人选中的灼烧感", trait: "desire" } },
+            { text: "如果能偷走一样东西而不被任何人发现，你会偷？", A: { text: "一个你羡慕已久的人的身份", trait: "desire" }, B: { text: "一段本不属于你的、炽热的记忆", trait: "desire" } },
+            { text: "如果给你一次绝对自由、不用负责的破坏机会，你会？", A: { text: "砸碎所有虚伪的规则和伪装", trait: "desire" }, B: { text: "找个没人的地方，大声尖叫到喉咙出血", trait: "desire" } },
+            { text: "你更容易被哪种人或事吸引？", A: { text: "危险、致命、带有禁忌色彩的事物", trait: "desire" }, B: { text: "纯粹、极致、能把人燃烧殆尽的情感", trait: "desire" } },
+            { text: "午夜梦回，你常常觉得内心的某一部分在？", A: { text: "疯狂地抓挠，想要破体而出", trait: "desire" }, B: { text: "无声地枯萎，慢慢失去了生命力", trait: "burnout" } },
+            { text: "在一段关系中，你最害怕自己变成什么样？", A: { text: "变得失去自我，完全被对方掌控", trait: "desire" }, B: { text: "变得毫无波澜，连占有欲都消失了", trait: "isolation" } },
+            { text: "如果你是一头困兽，你最想挣脱的是什么？", A: { text: "世俗的眼光和强加给我的期待", trait: "desire" }, B: { text: "自己内心深处那个无法逾越的牢笼", trait: "isolation" } },
+            { text: "你觉得野心是一种什么颜色的东西？", A: { text: "猩红色，带着血腥和掠夺的味道", trait: "desire" }, B: { text: "暗金色，需要在黑暗中蛰伏才能发光", trait: "action" } },
+            { text: "在什么样的情况下，你会觉得自己的欲望被满足了？", A: { text: "看着别人因为我而情绪失控", trait: "desire" }, B: { text: "完成了一件极其艰难、只有我能做到的事", trait: "action" } },
+            { text: "如果必须用一种方式来证明你活过，你会选？", A: { text: "刻骨铭心、痛彻心扉地爱过一次", trait: "desire" }, B: { text: "留下一些永不磨灭的思想或作品", trait: "action" } },
+            { text: "当你盯着深渊看时，你觉得深渊想对你说什么？", A: { text: "“跳下来吧，这里有你想要的一切。”", trait: "desire" }, B: { text: "“你已经和我一样漆黑了。”", trait: "burnout" } },
+            { text: "如果现在必须做一件你一直拖延的事，你最先感受到的是？", A: { text: "烦躁，但会硬着头皮动手", trait: "action" }, B: { text: "一种深深的无力感，像身体被灌了铅", trait: "burnout" } },
+            { text: "有人对你说“你变了”。你心里的第一反应是？", A: { text: "“我连自己是谁都快不确定了。”", trait: "burnout" }, B: { text: "“终于有人注意到了。”", trait: "desire" } },
+            { text: "最后，你更愿意相信哪一种关于自己的描述？", A: { text: "一个还在暗处积蓄力量的人", trait: "action" }, B: { text: "一个已经疲惫但还在硬撑的人", trait: "burnout" } },
+            { text: "你面前有一扇锈住的铁门，推开它需要用力。你？", A: { text: "先推一下试试，推不动再想办法", trait: "action" }, B: { text: "站在原地，想象推开门之后会看到什么", trait: "burnout" } },
+            { text: "面对一个完全未知的、充满风险的机会，你会？", A: { text: "先上了再说，车到山前必有路", trait: "action" }, B: { text: "做足最坏的打算，然后彻夜难眠", trait: "burnout" } },
+            { text: "你正在攀登一座没有尽头的黑色山峰，支撑你的信念是？", A: { text: "山顶一定有别人没见过的风景", trait: "action" }, B: { text: "我只是不想烂在半山腰", trait: "isolation" } },
+            { text: "如果要破局，你觉得自己最需要丢掉的是什么？", A: { text: "对完美的执念", trait: "burnout" }, B: { text: "患得患失的犹豫", trait: "action" } },
+            { text: "假设你正处于黎明前最黑的时刻，你会？", A: { text: "闭上眼睛，凭着直觉向前摸索", trait: "action" }, B: { text: "靠在墙上，等待第一缕光出现", trait: "burnout" } },
+            { text: "你更愿意做一把什么样的武器？", A: { text: "未出鞘时隐忍，出鞘则一击必杀的匕首", trait: "action" }, B: { text: "大开大合，哪怕折断也要劈开一切的重剑", trait: "desire" } },
+            { text: "面对一团乱麻的局面，你的第一反应是？", A: { text: "直接找把剪刀，找到线头全部剪断", trait: "action" }, B: { text: "觉得心烦意乱，干脆先扔在一边不管", trait: "burnout" } },
+            { text: "你觉得“宿命”这个词，对你来说意味着什么？", A: { text: "是用来被打破的枷锁", trait: "action" }, B: { text: "是无法逃避、只能承受的洪流", trait: "isolation" } },
+            { text: "如果今天是你生命的最后一天，你更可能会？", A: { text: "去完成一件一直想做但没敢做的事", trait: "action" }, B: { text: "像往常一样度过，假装什么都不会发生", trait: "burnout" } },
+            { text: "把现在的自己比作一只动物，你觉得自己是？", A: { text: "受了伤但依然盯着猎物的狼", trait: "action" }, B: { text: "藏在深海里，靠吃自己情绪的鲸", trait: "isolation" } }
+        ];
+
+        const results = {
+            burnout: { title: "噬月 · 枯竭", text: "你的潜意识正处于高负荷的内耗之中。\n\n你总在自我审视，试图剥离掉所有的不完美，却因此陷入了深深的精神疲劳。你害怕停下来，因为一旦停下，那些被你压抑的情绪就会反噬。\n\n【建议】请允许自己有一段“无用”的时光。不要急着自证，不要害怕暗淡。今晚，试着放下所有的防御，好好睡一觉。", color: 0x3b1d24, light: 0x883344 },
+            desire: { title: "血月 · 渴求", text: "你的内在有着极高的能量与渴望。\n\n你渴望掌控，渴望突破，甚至带着一点破坏欲。但现实的重力让你感到压抑，这种强烈的欲望与现实的落差，让你处于焦躁与迷茫的临界点。\n\n【建议】不要害怕你的野心。你的痛苦来源于生命力无处释放。去寻找一个突破口吧，去狂奔，去创作，去摧毁旧的，建立新的。", color: 0xff1a1a, light: 0xff0000 },
+            isolation: { title: "幽月 · 壁垒", text: "你的精神世界非常独立，甚至有些疏离。\n\n你建起了极高的心理防御机制，观察着人群，却不愿轻易融入。你有一种深刻的孤独感，但并不是因为没人陪伴，而是因为你找不到同频的灵魂。\n\n【建议】孤独是你的铠甲，但也可能成为牢笼。试着稍微降低一点点心墙，让微弱的光照进来。接纳他人的不完美，也接纳自己偶尔的脆弱。", color: 0x1b3b5c, light: 0x4488ff },
+            action: { title: "朔月 · 蛰伏", text: "你拥有一种沉默的韧性，如同黎明前最暗的时刻。\n\n你不是那种喜欢声张的人，但你的内心始终有一股暗流在涌动。你目前处于蛰伏期，在等待一个明确的契机。你的迷茫在于“不知道当下是否有意义”。\n\n【建议】相信你的直觉。你已经在黑暗中积蓄了足够的力量。不要过度等待完美时机，直接去行动。哪怕只是迈出微小的一步，也会让命运的齿轮开始转动。", color: 0xffffff, light: 0xddddff },
+            burnout_desire: { title: "焚月 · 囚徒", text: "你处于极度矛盾的撕裂状态。\n\n你心中有巨大的渴望与野心，但长期的内耗与自我怀疑像锁链一样困住了你。你越想挣脱，越觉得无力；你越觉得无力，就越痛恨自己。\n\n【建议】这是一种极其消耗能量的状态。请先停止对自己的攻击。去跑一场步，去撕一张纸，把破坏欲转化为一种物理上的宣泄，然后再重新思考。", color: 0x8b0000, light: 0xaa2222 },
+            isolation_action: { title: "隐月 · 独狼", text: "你是一个极度独立且清醒的灵魂。\n\n你不需要无效的社交，比起合群，你更看重自己的目标。你的孤独是你主动选择的，但你有时也会在深夜感到一丝难以名状的空洞。\n\n【建议】不必强求他人的理解，强者总是孤独的。但请记得在前进的路上，偶尔看看周围的风景。不要把所有的情绪都压在自己心里，允许自己有一个安全的出口。", color: 0x4a6075, light: 0x88aacc },
+            isolation_desire: { title: "暗月 · 深渊", text: "你的内心潜藏着极度危险的吸引力。\n\n你既渴望有人能彻底看穿你的防备，又害怕一旦被触碰，你内心狂暴的占有欲会吓跑对方。你像一个守着宝藏的幽灵，孤独又充满诱惑。\n\n【建议】真实的爱不是互相凝视深渊，而是共同看向同一个方向。试着在安全的范围内，一点点展露你的脆弱。你会发现，真实的你，比伪装的你更加迷人。", color: 0x4b0082, light: 0xcc44ff },
+            burnout_action: { title: "陨月 · 灰烬", text: "你正在透支自己。\n\n你的理智告诉你必须行动，必须去解决问题，但你的身体和灵魂已经发出了严重的警告。你像一颗燃烧坠落的流星，强弩之末，却还在逼自己发光。\n\n【建议】立刻停下来。这不是妥协，这是自救。没有什么比你的身心健康更重要。如果今天什么都不做，天也不会塌下来。请把手机静音，去睡个天昏地暗。", color: 0xff4500, light: 0xff8833 },
+            burnout_isolation: { title: "死星 · 绝境", text: "你似乎正困在一个无人回应的黑洞里。\n\n双重的高压让你失去了对生活的感知力，你不想说话，不想社交，甚至连求救的欲望都渐渐消失了。你觉得世界在运转，只有你停滞不前。\n\n【建议】不要试图一次性解决所有问题。今天只做一件极小的事：喝一杯温水，洗一个热水澡，或者哪怕只是拉开窗帘看看。微小的触觉，能把你拉回现实。", color: 0x2d2d2d, light: 0x555555 },
+            desire_action: { title: "狂月 · 征服", text: "你是一团无法被熄灭的野火。\n\n你不仅想要，你还要去拿。你极具执行力，野心勃勃，一旦锁定目标就会像猎豹一样出击。但在你不断攀爬的过程中，你是否也感到了一丝高处不胜寒的疲惫？\n\n【建议】你的能力毋庸置疑，但不要让自己成为目标的奴隶。偶尔停下来问问自己：这真的是我想要的吗？还是只是我害怕输的证明？", color: 0xff0040, light: 0xff2266 },
+            triple_desire: { title: "魔月 · 业火", text: "你的精神世界里，欲望占据了绝对的主导。\n\n你有着近乎偏执的执念，对某个人、某件事，或者某种权力。这种极端的渴望赋予了你极强的力量，但也正在悄悄吞噬你的理智。你早已分不清那是爱，还是不甘心。\n\n【建议】执念太深，伤人伤己。试着把注意力从“结果”转移到“过程”。不要让一场大火，连你自己也烧成灰烬。", color: 0xc70039, light: 0xff3355 },
+            triple_burnout: { title: "湮月 · 虚无", text: "你似乎已经耗尽了最后一丝力气。\n\n周围的一切对你来说都像隔着厚厚的玻璃，你看着世界在动，自己却毫无反应。这种麻木的深层，是你极度疲惫的灵魂在呼喊停止。\n\n【建议】允许自己彻底摆烂一段时间。不要有负罪感。虚无本身就是生命的一部分。当你真的休息够了，你的本能会重新呼唤你站起来。", color: 0x1a0a0a, light: 0x442222 },
+            triple_isolation: { title: "孤星 · 宇宙", text: "你把自己活成了一座自给自足的孤岛。\n\n你不需要外界的理解，甚至觉得人际关系是一种消耗。你的精神世界极其辽阔，但也正因为太辽阔，偶尔会让人觉得空无一人。\n\n【建议】享受孤独是你的天赋，但不妨偶尔给世界留一道缝隙。不用完全敞开，只需让一个真正懂你的人，在门外坐一坐就好。", color: 0x0b1a2e, light: 0x335588 },
+            triple_action: { title: "刃月 · 决绝", text: "你是一个极致的行动派。\n\n遇到问题，你从不抱怨，只会立刻寻找解决办法。你的果断和冷静让人钦佩，但也让你显得有些冷酷无情。你把情绪视为累赘，只相信结果。\n\n【建议】钢太硬易折。在狂奔的路上，请记得照顾一下自己和身边人的情绪。偶尔的脆弱和感性，不会影响你的强大，反而会让你更有温度。", color: 0xe6e6fa, light: 0xffffff },
+            balanced: { title: "满月 · 均衡", text: "你拥有一个极其罕见、健康的心理状态。\n\n你既能接纳自己的欲望，又能付诸行动；你享受独处，也能在关系中如鱼得水；你偶尔会内耗，但总能迅速调整。你是一个圆融、自洽的人。\n\n【建议】保持这种状态。你已经是自己的主人。把这份平和的力量传递给身边那些正在挣扎的人吧。", color: 0xfdfdfd, light: 0xffffff }
+        };
+
+        let randomQuestions = [];
+        let currentQuestion = 0;
+        let scores = { burnout: 0, desire: 0, isolation: 0, action: 0 };
+        let isMusicPlaying = false;
+        let typeTimer = null;
+
+        const bgm = document.getElementById('bgm');
+        bgm.volume = 0.4;
+
+        const astrolabe = document.getElementById('astrolabe');
+        document.addEventListener('mousemove', (e) => {
+            let xAxis = (window.innerWidth / 2 - e.pageX) / 60;
+            let yAxis = (window.innerHeight / 2 - e.pageY) / 60;
+            xAxis = Math.max(Math.min(xAxis, 10), -10);
+            yAxis = Math.max(Math.min(yAxis, 10), -10);
+            astrolabe.style.transform = `rotateX(${yAxis}deg) rotateY(${xAxis}deg)`;
+        });
+
+        function getRandomQuestions(count) {
+            let shuffled = [...questionBank].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
+        }
+
+        function switchScreen(hideId, showId) {
+            document.getElementById(hideId).classList.remove('show');
+            setTimeout(() => {
+                document.getElementById(hideId).style.display = 'none';
+                const nextScreen = document.getElementById(showId);
+                nextScreen.style.display = 'flex';
+                nextScreen.style.flexDirection = 'column';
+                void nextScreen.offsetWidth; 
+                nextScreen.classList.add('show');
+            }, 500); 
+        }
+
+        function toggleMusic() {
+            const btn = document.getElementById('musicBtn');
+            if (isMusicPlaying) {
+                bgm.pause();
+                btn.classList.remove('playing'); btn.classList.add('paused');
+            } else {
+                bgm.play().catch(e => console.log('播放被阻断', e));
+                btn.classList.add('playing'); btn.classList.remove('paused');
+            }
+            isMusicPlaying = !isMusicPlaying;
+        }
+
+        function startTest() {
+            if (!isMusicPlaying) {
+                bgm.play().then(() => {
+                    document.getElementById('musicBtn').classList.add('playing');
+                    document.getElementById('musicBtn').classList.remove('paused');
+                    isMusicPlaying = true;
+                }).catch(e => console.log('需要用户点击授权', e));
+            }
+            randomQuestions = getRandomQuestions(4);
+            switchScreen('homeScreen', 'questionScreen');
+            document.getElementById('qBox').style.display = 'flex';
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= randomQuestions.length) {
+                showLoading();
+                return;
+            }
+            const q = randomQuestions[currentQuestion];
+            document.getElementById('questionText').innerText = q.text;
+            document.getElementById('optionA').innerText = q.A.text;
+            document.getElementById('optionB').innerText = q.B.text;
+            
+            const qBox = document.getElementById('qBox');
+            qBox.style.opacity = 0;
+            qBox.style.transform = 'translateY(10px)';
+            setTimeout(() => { 
+                qBox.style.transition = 'all 0.5s ease'; 
+                qBox.style.opacity = 1; 
+                qBox.style.transform = 'translateY(0)';
+            }, 50);
+        }
+
+        function selectOption(choice) {
+            const q = randomQuestions[currentQuestion];
+            const trait = q[choice].trait;
+            scores[trait]++; 
+
+            const qBox = document.getElementById('qBox');
+            qBox.style.opacity = 0;
+            qBox.style.transform = 'translateY(-10px)';
+            
+            setTimeout(() => {
+                currentQuestion++;
+                loadQuestion();
+            }, 500);
+        }
+
+        function showLoading() {
+            switchScreen('questionScreen', 'loadingScreen');
+            document.getElementById('loadingScreen').style.display = 'flex';
+            const loadingTexts = [ "正在解析命轨碎片...", "读取潜意识深渊...", "灵魂共鸣中...", "星轨正在成型..." ];
+            let i = 0;
+            const interval = setInterval(() => {
+                document.getElementById('loadingText').innerText = loadingTexts[i];
+                i = (i + 1) % loadingTexts.length;
+            }, 700);
+
+            setTimeout(() => {
+                clearInterval(interval);
+                showResult();
+            }, 2800); 
+        }
+
+        function showResult() {
+            let sortedScores = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+            let max1 = sortedScores[0];
+            let max2 = sortedScores[1];
+            
+            let resKey = max1[0];
+
+            if (max1[1] >= 3) {
+                if (max1[0] === 'burnout') resKey = 'triple_burnout';
+                if (max1[0] === 'desire') resKey = 'triple_desire';
+                if (max1[0] === 'isolation') resKey = 'triple_isolation';
+                if (max1[0] === 'action') resKey = 'triple_action';
+            } else if (max1[1] === max2[1] && max1[1] > 0) {
+                let combo1 = max1[0] + "_" + max2[0];
+                let combo2 = max2[0] + "_" + max1[0];
+                if (results[combo1]) resKey = combo1;
+                else if (results[combo2]) resKey = combo2;
+            } else if (max1[1] === 1 && max2[1] === 1) {
+                resKey = 'balanced';
+            }
+
+            const res = results[resKey] || results['balanced'];
+            
+            if (typeof updateMoonLight === 'function') {
+                updateMoonLight(res.light, res.color);
+            }
+            
+            switchScreen('loadingScreen', 'resultScreen');
+            document.getElementById('rBox').style.display = 'flex';
+            document.getElementById('resultTitle').innerText = res.title;
+            typeWriter(res.text, 'resultText', 30);
+        }
+
+        function typeWriter(text, elementId, speed) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = ''; 
+            const paragraphs = text.split('\n').filter(p => p.trim() !== '');
+            let pIndex = 0, charIndex = 0;
+            let currentP = document.createElement('p');
+            currentP.style.marginBottom = '12px';
+            el.appendChild(currentP);
+            if (typeTimer) clearInterval(typeTimer);
+            
+            typeTimer = setInterval(() => {
+                if (pIndex >= paragraphs.length) { clearInterval(typeTimer); return; }
+                const currentText = paragraphs[pIndex];
+                if (charIndex < currentText.length) {
+                    currentP.innerText += currentText[charIndex];
+                    charIndex++;
+                } else {
+                    pIndex++; charIndex = 0;
+                    if (pIndex < paragraphs.length) {
+                        currentP = document.createElement('p');
+                        currentP.style.marginBottom = '12px';
+                        el.appendChild(currentP);
+                    }
+                }
+            }, speed);
+        }
+
+        const threeContainer = document.getElementById('three-canvas');
+        const scene = new THREE.Scene();
+        
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+        camera.position.z = 4.5;
+
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(300, 300);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        threeContainer.appendChild(renderer.domElement);
+
+        const textureLoader = new THREE.TextureLoader();
+        const moonMap = textureLoader.load('https://unpkg.com/three-globe/example/img/moon.jpg');
+        const moonBumpMap = textureLoader.load('https://unpkg.com/three-globe/example/img/moon-bump.jpg');
+
+        const moonGeometry = new THREE.SphereGeometry(1.5, 64, 64);
+        const moonMaterial = new THREE.MeshStandardMaterial({
+            map: moonMap,
+            bumpMap: moonBumpMap,
+            bumpScale: 0.05,
+            color: 0xffffff,
+            roughness: 0.9,
+            metalness: 0.1
+        });
+        const moonMesh = new THREE.Mesh(moonGeometry, moonMaterial);
+        scene.add(moonMesh);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.05); 
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+        directionalLight.position.set(5, 3, 5);
+        scene.add(directionalLight);
+
+        function updateMoonLight(lightColorHex, moonColorHex) {
+            const lColor = new THREE.Color(lightColorHex);
+            const mColor = new THREE.Color(moonColorHex);
+            
+            directionalLight.color.set(lColor);
+            moonMaterial.color.set(mColor);
+            
+            if (lightColorHex === 0x2d2d2d || lightColorHex === 0x1a0a0a) {
+                directionalLight.intensity = 0.8;
+                ambientLight.intensity = 0.01;
+            } else {
+                directionalLight.intensity = 2.5;
+                ambientLight.intensity = 0.1;
+            }
+        }
+
+        const clock = new THREE.Clock();
+        function animateMoon() {
+            requestAnimationFrame(animateMoon);
+            const elapsedTime = clock.getElapsedTime();
+            moonMesh.rotation.y = elapsedTime * 0.15;
+            moonMesh.rotation.x = Math.sin(elapsedTime * 0.2) * 0.1;
+            renderer.render(scene, camera);
+        }
+        animateMoon();
+
+        const canvas = document.getElementById('spaceCanvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [], dust = []; 
+
+        function initStars() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            stars = []; dust = [];
+            for (let i = 0; i < 150; i++) {
+                stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, radius: Math.random() * 1.2, alpha: Math.random(), speed: (Math.random() * 0.02) + 0.005 });
+            }
+            for (let i = 0; i < 15; i++) {
+                dust.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, radius: (Math.random() * 50) + 20, vx: (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.2, alpha: Math.random() * 0.08 + 0.02 });
+            }
+        }
+
+        function drawBackground() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            dust.forEach(d => {
+                d.x += d.vx; d.y += d.vy;
+                if (d.x < -80) d.x = canvas.width + 80; if (d.x > canvas.width + 80) d.x = -80;
+                if (d.y < -80) d.y = canvas.height + 80; if (d.y > canvas.height + 80) d.y = -80;
+                let gradient = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.radius);
+                gradient.addColorStop(0, `rgba(120, 80, 180, ${d.alpha})`); 
+                gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.beginPath(); ctx.arc(d.x, d.y, d.radius, 0, Math.PI * 2); ctx.fillStyle = gradient; ctx.fill();
+            });
+            stars.forEach(star => {
+                ctx.beginPath(); ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`; ctx.fill();
+                star.alpha += star.speed;
+                if (star.alpha > 1 || star.alpha < 0) star.speed = -star.speed;
+            });
+            requestAnimationFrame(drawBackground);
+        }
+        initStars();
+        drawBackground();
+        window.addEventListener('resize', initStars);
+    </script>
+</body>
+</html>
